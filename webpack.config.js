@@ -38,7 +38,7 @@ module.exports = {
     devServer: {
         static: path.join(__dirname, 'dist'),
         host: '0.0.0.0',
-        disableHostCheck: true,
+        allowedHosts: ['all'],
         compress: true,
         port: 8282,
         open: false,
