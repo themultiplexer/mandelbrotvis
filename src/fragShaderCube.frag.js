@@ -5,31 +5,40 @@ precision highp float;
 precision highp int;
 
 in vec3 fragCoord;
+in float dist;
 out vec4 outFragColor;
 
 uniform vec3 iResolution;
 uniform float iGlobalTime;
 uniform float zoom;
+uniform float rotation;
 
 const int MaxIterations = 90;
-const vec2 Focus = vec2(0.0, 0.0);
- 
-vec3 color(int iteration, float sqLengthZ) {
+const vec2 Focus = vec2(-1.48, 0.0);
+//const vec2 Focus = vec2(-1.1, 0.0);
+
+vec2 rotate_point(float cx, float cy, float angle, vec2 p){
+    return vec2(cos(angle) * (p.x - cx) - sin(angle) * (p.y - cy) + cx,
+                sin(angle) * (p.x - cx) + cos(angle) * (p.y - cy) + cy);
+}
+
+vec4 color(int iteration, float sqLengthZ, float z) {
     // If the point is within the mandlebrot set
     // just color it black
     if(iteration == MaxIterations)
-        return vec3(0.0);
+        return vec4(0.0);
 
     // Else we give it a smoothed color
-   	float ratio = (float(iteration) - log2(log2(sqLengthZ))) / float(MaxIterations);
+   	//float ratio = sqrt((float(iteration) - log2(log2(sqLengthZ))) / float(MaxIterations));
+    float ratio = float(iteration) / float(MaxIterations);
  
     // Procedurally generated colors
-    return mix(vec3(1.0, 0.0, 0.0), vec3(1.0, 1.0, 0.0), sqrt(ratio));
+    return vec4(mix(vec3(0.0, 0.0, 0.0), vec3(1.0, 0.0, 0.0), ratio), clamp(z, 0.0, 1.0));
 }
  
 void main() {      
     // C is the aspect-ratio corrected UV coordinate.
-    vec2 c = (-1.0 + 2.0 * fragCoord.xy) ;//* vec2(iResolution.x / iResolution.y, 1.0);
+    vec2 c = (-1.0 + 2.0 * rotate_point(0.5, 0.5, rotation, fragCoord.xy)) ;//* vec2(iResolution.x / iResolution.y, 1.0);
  
     // Apply scaling, then offset to get a zoom effect
     c = (c * exp(-zoom)) + Focus;
@@ -52,7 +61,7 @@ void main() {
     }
  
     // Generate the colors
-    outFragColor = vec4(color(iteration, dot(z,z)), 1.0);
+    outFragColor = color(iteration, dot(z,z), dist);
  
     // Apply gamma correction
     outFragColor.rgb = pow(outFragColor.rgb, vec3(0.5));

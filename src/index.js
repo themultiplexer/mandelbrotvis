@@ -5,30 +5,19 @@
  */
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { GUI } from "three/examples/jsm/libs/lil-gui.module.min.js";
-import { VertexNormalsHelper } from "three/examples/jsm/helpers/VertexNormalsHelper";
 
 //load shaders
-// cube
 import { vertShaderCube } from "./vertShaderCube.vert.js";
 import { fragShaderCube } from "./fragShaderCube.frag.js";
 
 // defining the variables
 let camera, scene, renderer, directionalLight, ambientLight;
-let materialCube,
-  materialSpherePerVertex,
-  materialSpherePerPixel,
-  baseColorSpherePerVertex,
-  baseColorSpherePerPixel;
-let radiusSpherePerVertex,
-  widthSegmentsSpherePerVertex,
-  heightSegmentsSpherePerVertex,
-  radiusSpherePerPixel,
-  widthSegmentsSpherePerPixel,
-  heightSegmentsSpherePerPixel;
-let meshSpherePerVertex, meshSpherePerPixel;
+let materials = []
+let meshes = []
 
-let mesh;
+const NUM_PLANES = 100
+const PLANE_DIST = 0.2
+const ZOOM_DIFF = 0.1
 
 function init() {
   // +++ create a WebGLRenderer +++
@@ -43,7 +32,7 @@ function init() {
 
   //creating the Scene
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xf0f0f0);
+  scene.background = new THREE.Color(0x000000);
 
   // adding directional light
   directionalLight = new THREE.DirectionalLight("#efebd8", 1.1);
@@ -55,7 +44,7 @@ function init() {
 
   // adding a camera PerspectiveCamera( fov, aspect, near, far)
   camera = new THREE.PerspectiveCamera(
-    70,
+    50,
     window.innerWidth / window.innerHeight,
     0.01,
     10
@@ -69,33 +58,36 @@ function init() {
   controls.update();
 
   // create cube geomerty
-  let center = new THREE.Vector3(0.0, 0.0, -1.0);
-  const geometry = new THREE.PlaneGeometry( 2, 1 );
+  const geometry = new THREE.PlaneGeometry(80, 40);
 
-  // cube uniforms
-  let uniforms = {
-    boxLength: {
-      value: new THREE.Vector3(1, 1, 1),
-    },
-    iGlobalTime: { type: "f", value: 1.0 },
-    iResolution: { type: "v3", value: new THREE.Vector3() },
-    zoom: { value: 0.1 },
-  };
-  // cube material
-  materialCube = new THREE.ShaderMaterial({
-    vertexShader: vertShaderCube,
-    fragmentShader: fragShaderCube,
-    uniforms: uniforms,
-    glslVersion: THREE.GLSL3,
-  });
+  for (let index = 0; index < NUM_PLANES; index++) {
+    // cube uniforms
+    let uniforms = {
+      boxLength: {
+        value: new THREE.Vector3(1, 1, 1),
+      },
+      iGlobalTime: { type: "f", value: 1.0 },
+      iResolution: { type: "v3", value: new THREE.Vector3() },
+      zoom: { value: (ZOOM_DIFF * index) },
+      rotation: { value: 0.1 * index },
+    };
+    // cube material
+    let material = new THREE.ShaderMaterial({
+      vertexShader: vertShaderCube,
+      fragmentShader: fragShaderCube,
+      uniforms: uniforms,
+      glslVersion: THREE.GLSL3,
+      transparent: true,
+    });
 
-  // cube object
-  mesh = new THREE.Mesh(geometry, materialCube);
-  mesh.position.copy(center);
-  scene.add(mesh);
+    materials.push(material)
 
-  uniforms.iResolution.value.x = 50;
-  uniforms.iResolution.value.y = 50;
+    // cube object
+    let mesh = new THREE.Mesh(geometry, material);
+    mesh.position.copy(new THREE.Vector3(0.0, 0.0, -(index * PLANE_DIST)));
+    meshes.push(mesh)
+    scene.add(mesh);
+  }
 }
 
 /*
@@ -107,13 +99,16 @@ function init() {
 // extendable render wrapper
 function render() {
   renderer.render(scene, camera);
-  if (mesh.position.z < 1) {
-    mesh.position.z += 0.01;
-  } else {
-    mesh.position.z = -1.0;
+
+  for (let index = 0; index < NUM_PLANES; index++) {
+    if (meshes[index].position.z < 1) {
+      meshes[index].position.z += 0.005;
+    } else {
+      meshes[index].position.z = -(NUM_PLANES - 1) * PLANE_DIST + 1;
+      materials[index].uniforms.zoom.value += (ZOOM_DIFF * (NUM_PLANES - 1));
+      materials[index].uniforms.rotation.value += 0.2;
+    }
   }
-  
-  //materialCube.uniforms.zoom.value += 0.01;
 }
 
 // animation function calling the renderer
