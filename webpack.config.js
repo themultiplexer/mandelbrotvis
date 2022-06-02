@@ -36,13 +36,11 @@ module.exports = {
 
     // configure the webserver
     devServer: {
-
-        // set the path to the folder containing the web-app
         static: path.join(__dirname, 'dist'),
-
-        // you can also use another port, it is just custom to use 8080
+        host: '0.0.0.0',
+        disableHostCheck: true,
         compress: true,
-        port: 8080,
+        port: 8282,
         open: false,
     },
 };
