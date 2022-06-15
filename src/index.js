@@ -18,6 +18,7 @@ let meshes = []
 const NUM_PLANES = 100
 const PLANE_DIST = 0.2
 const ZOOM_DIFF = 0.1
+const ROTATION_DIFF = 0.1
 
 function init() {
   // +++ create a WebGLRenderer +++
@@ -69,7 +70,10 @@ function init() {
       iGlobalTime: { type: "f", value: 1.0 },
       iResolution: { type: "v3", value: new THREE.Vector3() },
       zoom: { value: (ZOOM_DIFF * index) },
-      rotation: { value: 0.1 * index },
+      rotation: { value: ROTATION_DIFF * index },
+      //focus : {type: "v3", value: new THREE.Vector3(-1.48, 0.0)}
+      //focus : {type: "v3", value: new THREE.Vector3(-1.9, 0.0)}
+      focus : {type: "v3", value: new THREE.Vector3(-1.99999999999, 0.0)}
     };
     // cube material
     let material = new THREE.ShaderMaterial({
@@ -96,6 +100,8 @@ function init() {
  ********************************
  */
 
+let zoom = 0
+
 // extendable render wrapper
 function render() {
   renderer.render(scene, camera);
@@ -106,9 +112,11 @@ function render() {
     } else {
       meshes[index].position.z = -(NUM_PLANES - 1) * PLANE_DIST + 1;
       materials[index].uniforms.zoom.value += (ZOOM_DIFF * (NUM_PLANES - 1));
-      materials[index].uniforms.rotation.value += 0.2;
+      materials[index].uniforms.rotation.value += ROTATION_DIFF;
     }
   }
+  zoom += (ZOOM_DIFF * (NUM_PLANES - 1));
+  document.getElementById("zoom").innerHTML = zoom
 }
 
 // animation function calling the renderer

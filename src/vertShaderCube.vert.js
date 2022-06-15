@@ -5,6 +5,7 @@ out vec3 fragCoord;
 out float dist;
 uniform vec3 boxLength;
 uniform float zoom;
+uniform vec2 focus;
 out vec3 localposVertex;
 
 
