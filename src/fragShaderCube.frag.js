@@ -49,7 +49,7 @@ void main() {
  
     while(iteration < MaxIterations) {
         // Precompute for efficiency
-   	float zr2 = z.x * z.x;
+   	    float zr2 = z.x * z.x;
         float zi2 = z.y * z.y;
  
         // The larger the square length of Z,
@@ -57,7 +57,7 @@ void main() {
         if(zr2 + zi2 > 32.0) break;
  
         // Complex multiplication, then addition
-    	z = vec2(zr2 - zi2, 2.0 * z.x * z.y) + c;
+    	z = vec2(zr2 - zi2, (z.x * z.y) + (z.x * z.y)) + c;
         ++iteration;
     }
  
