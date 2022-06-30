@@ -34,10 +34,11 @@ function init() {
     u_mouse: { type: "v2", value: new THREE.Vector2() },
     iGlobalTime: { type: "f", value: 1.0 },
     iResolution: { type: "v3", value: new THREE.Vector3() },
-    zoom: { value: 0.1 },
-    rotation: { value: 90 },
-    //focus : {type: "v3", value: new THREE.Vector3(-1.48, 0.0)}
-    focus: { type: "v3", value: new THREE.Vector3(-1.9, 0.0) },
+    zoom: { value: 0.001 },
+    rotation: { value: 0 },
+    fixedPoint: { value: true },
+    focus : {type: "v3", value: new THREE.Vector3(-1.48, 0.0)},
+    //focus: { type: "v3", value: new THREE.Vector3(0.0, 0.0) },
     //focus : {type: "v3", value: new THREE.Vector3(0.0, 0.0)}
     colormap : { type: "v3v", value: [ new THREE.Vector3( 0.1, 0.2, 0.3), new THREE.Vector3( 0.4, 0.5, 0.6) ] }
   };
@@ -62,30 +63,36 @@ function init() {
     moveView(e, e.clientX, e.clientY)
     var vz = e.deltaY > 0 ? -1.0 : 1.0
     uniforms.zoom.value += vz * 0.1
+    document.getElementById("label").innerHTML = Math.exp(-uniforms.zoom.value)
   });
   document.addEventListener('keydown', function (e) {
     
     switch (e.key) {
       case 'w':
-        uniforms.focus.value.y += (0.01 / uniforms.zoom.value)
+        moveView2(e, 0, 2)
         break;
   
       case 'a':
-        uniforms.focus.value.x -= (0.01 / uniforms.zoom.value)
+        moveView2(e, 2, 0)
         break;
   
       case 's':
-        uniforms.focus.value.y -= (0.01 / uniforms.zoom.value)
+        moveView2(e, 0, -2)
         break;
   
       case 'd':
-        uniforms.focus.value.x += (0.01 / uniforms.zoom.value)
+        moveView2(e, -2 , 0)
         break;
   
       default:
         break;
     }
   });
+
+  var checkbox = document.getElementById("scales")
+  checkbox.addEventListener('change', () => {
+    uniforms.fixedPoint.value = !checkbox.checked
+  })
 
   document.addEventListener('mousedown', mouseDown, false);
   window.addEventListener('mouseup', mouseUp, false);
