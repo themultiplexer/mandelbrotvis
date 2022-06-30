@@ -4,21 +4,13 @@
  ********************************
  */
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-//load shaders
 import { vertShaderCube } from "./vertShaderCube.vert.js";
 import { fragShaderCube } from "./fragShaderCube.frag.js";
 
 // defining the variables
 let camera, scene, renderer, directionalLight, ambientLight;
-let materials = []
-let meshes = []
-
-const NUM_PLANES = 100
-const PLANE_DIST = 0.2
-const ZOOM_DIFF = 0.1
-const ROTATION_DIFF = 0.1
+var uniforms;
 
 function init() {
   // +++ create a WebGLRenderer +++
@@ -31,69 +23,106 @@ function init() {
   // add dom object(renderer) to the body section of the index.html
   document.body.appendChild(renderer.domElement);
 
-  //creating the Scene
+  camera = new THREE.Camera();
+  camera.position.z = 1;
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x000000);
+  var geometry = new THREE.PlaneGeometry(2, 2);
 
-  // adding directional light
-  directionalLight = new THREE.DirectionalLight("#efebd8", 1.1);
-  scene.add(directionalLight);
+  uniforms = {
+    //u_time: { type: "f", value: 1.0 },
+    u_resolution: { type: "v2", value: new THREE.Vector2() },
+    u_mouse: { type: "v2", value: new THREE.Vector2() },
+    iGlobalTime: { type: "f", value: 1.0 },
+    iResolution: { type: "v3", value: new THREE.Vector3() },
+    zoom: { value: 0.1 },
+    rotation: { value: 90 },
+    //focus : {type: "v3", value: new THREE.Vector3(-1.48, 0.0)}
+    focus: { type: "v3", value: new THREE.Vector3(-1.9, 0.0) },
+    //focus : {type: "v3", value: new THREE.Vector3(0.0, 0.0)}
+    colormap : { type: "v3v", value: [ new THREE.Vector3( 0.1, 0.2, 0.3), new THREE.Vector3( 0.4, 0.5, 0.6) ] }
+  };
 
-  // adding ambient light
-  ambientLight = new THREE.AmbientLight("#efebd8", 0.2);
-  scene.add(ambientLight);
+  var material = new THREE.ShaderMaterial({
+    uniforms: uniforms,
+    vertexShader: vertShaderCube,
+    fragmentShader: fragShaderCube,
+  });
 
-  // adding a camera PerspectiveCamera( fov, aspect, near, far)
-  camera = new THREE.PerspectiveCamera(
-    50,
-    window.innerWidth / window.innerHeight,
-    0.01,
-    10
-  );
+  var mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
 
-  // set the camera position x,y,z in the Scene
-  camera.position.set(0, 0, 1);
-
-  // add controls to the scene
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.update();
-
-  // create cube geomerty
-  const geometry = new THREE.PlaneGeometry(80, 40);
-
-  for (let index = 0; index < NUM_PLANES; index++) {
-    // cube uniforms
-    let uniforms = {
-      boxLength: {
-        value: new THREE.Vector3(1, 1, 1),
-      },
-      iGlobalTime: { type: "f", value: 1.0 },
-      iResolution: { type: "v3", value: new THREE.Vector3() },
-      zoom: { value: (ZOOM_DIFF * index) },
-      rotation: { value: ROTATION_DIFF * index },
-      //focus : {type: "v3", value: new THREE.Vector3(-1.48, 0.0)}
-      //focus : {type: "v3", value: new THREE.Vector3(-1.9, 0.0)}
-      focus : {type: "v3", value: new THREE.Vector3(-1.99999999999, 0.0)}
-    };
-    // cube material
-    let material = new THREE.ShaderMaterial({
-      vertexShader: vertShaderCube,
-      fragmentShader: fragShaderCube,
-      uniforms: uniforms,
-      glslVersion: THREE.GLSL3,
-      transparent: true,
-    });
-
-    materials.push(material)
-
-    // cube object
-    let mesh = new THREE.Mesh(geometry, material);
-    mesh.position.copy(new THREE.Vector3(0.0, 0.0, -(index * PLANE_DIST)));
-    meshes.push(mesh)
-    scene.add(mesh);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  onWindowResize();
+  window.addEventListener('resize', onWindowResize, false);
+  document.onmousemove = function (e) {
+    uniforms.u_mouse.value.x = e.pageX
+    uniforms.u_mouse.value.y = e.pageY
   }
+  document.addEventListener('wheel', function (e) {
+    moveView(e, e.clientX, e.clientY)
+    var vz = e.deltaY > 0 ? -1.0 : 1.0
+    uniforms.zoom.value += vz * 0.1
+  });
+  document.addEventListener('keydown', function (e) {
+    
+    switch (e.key) {
+      case 'w':
+        uniforms.focus.value.y += (0.01 / uniforms.zoom.value)
+        break;
+  
+      case 'a':
+        uniforms.focus.value.x -= (0.01 / uniforms.zoom.value)
+        break;
+  
+      case 's':
+        uniforms.focus.value.y -= (0.01 / uniforms.zoom.value)
+        break;
+  
+      case 'd':
+        uniforms.focus.value.x += (0.01 / uniforms.zoom.value)
+        break;
+  
+      default:
+        break;
+    }
+  });
+
+  document.addEventListener('mousedown', mouseDown, false);
+  window.addEventListener('mouseup', mouseUp, false);
 }
 
+function mouseUp() {
+  window.removeEventListener('mousemove', divMove, true);
+}
+
+function mouseDown(e) {
+  window.addEventListener('mousemove', divMove, true);
+}
+
+function divMove(e) {
+  moveView2(e, e.movementX, e.movementY)
+}
+
+function moveView(e, x, y) {
+  var rect = e.target.getBoundingClientRect();
+  var x = x - rect.left - (rect.width / 2.0); //x position within the element.
+  var y = (rect.height / 2.0) - y - rect.top;  //y position within the element.
+  console.log(x, y)
+  var vz = e.deltaY > 0 ? -1.0 : 1.0
+  uniforms.focus.value.x += ((x / (rect.width / 2.0)) / (5.0 * Math.exp(uniforms.zoom.value)))
+  uniforms.focus.value.y += ((y / (rect.width / 2.0)) / (5.0 * Math.exp(uniforms.zoom.value)))
+}
+
+function moveView2(e, x, y) {
+  uniforms.focus.value.x -= (x / (450.0 * Math.exp(uniforms.zoom.value)))
+  uniforms.focus.value.y += (y / (450.0 * Math.exp(uniforms.zoom.value)))
+}
+
+function onWindowResize(event) {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  uniforms.u_resolution.value.x = renderer.domElement.width;
+  uniforms.u_resolution.value.y = renderer.domElement.height;
+}
 /*
  ********************************
  *** Animation and Rendering ****
@@ -105,18 +134,6 @@ let zoom = 0
 // extendable render wrapper
 function render() {
   renderer.render(scene, camera);
-
-  for (let index = 0; index < NUM_PLANES; index++) {
-    if (meshes[index].position.z < 1) {
-      meshes[index].position.z += 0.005;
-    } else {
-      meshes[index].position.z = -(NUM_PLANES - 1) * PLANE_DIST + 1;
-      materials[index].uniforms.zoom.value += (ZOOM_DIFF * (NUM_PLANES - 1));
-      materials[index].uniforms.rotation.value += ROTATION_DIFF;
-    }
-  }
-  zoom += (ZOOM_DIFF * (NUM_PLANES - 1));
-  document.getElementById("zoom").innerHTML = zoom
 }
 
 // animation function calling the renderer

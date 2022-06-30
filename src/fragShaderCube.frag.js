@@ -6,16 +6,16 @@ precision highp int;
 
 in vec3 fragCoord;
 in float dist;
-out vec4 outFragColor;
-
 
 uniform vec3 iResolution;
+uniform vec3 u_resolution;
+uniform float[2] colormap;
 uniform float iGlobalTime;
 uniform float zoom;
 uniform float rotation;
 uniform vec2 focus;
 
-const int MaxIterations = 100;
+const int MaxIterations = 70;
 
 
 vec2 rotate_point(float cx, float cy, float angle, vec2 p){
@@ -23,23 +23,24 @@ vec2 rotate_point(float cx, float cy, float angle, vec2 p){
                 sin(angle) * (p.x - cx) + cos(angle) * (p.y - cy) + cy);
 }
 
-vec4 color(int iteration, float sqLengthZ, float z) {
+vec4 color(int iteration, float sqLengthZ) {
     // If the point is within the mandlebrot set
     // just color it black
     if(iteration == MaxIterations)
-        return vec4(0.0);
+        return vec4(1.0);
 
     // Else we give it a smoothed color
    	float ratio = sqrt((float(iteration) - log2(log2(sqLengthZ))) / float(MaxIterations));
     //float ratio = float(iteration) / float(MaxIterations);
  
     // Procedurally generated colors
-    return vec4(mix(vec3(0.0, 0.0, 0.0), vec3(1.0, 0.0, 0.0), ratio), clamp(z, 0.0, 1.0));
+    return vec4(mix(vec3(0.0, 0.0, 0.0), vec3(1.0, 0.0, 0.0), ratio), 1.0);
 }
  
 void main() {      
     // C is the aspect-ratio corrected UV coordinate.
-    vec2 c = (-1.0 + 2.0 * rotate_point(0.5, 0.5, rotation, fragCoord.xy)) ;//* vec2(iResolution.x / iResolution.y, 1.0);
+    //vec2 c = (-1.0 + 2.0 * rotate_point(0.5, 0.5, rotation, gl_FragCoord.xy)) ;
+    vec2 c = (-1.0 + 2.0 * gl_FragCoord.xy / u_resolution.xy) * vec2(u_resolution.x / u_resolution.y, 1.0);
  
     // Apply scaling, then offset to get a zoom effect
     c = (c * exp(-zoom)) + focus;
@@ -62,10 +63,10 @@ void main() {
     }
  
     // Generate the colors
-    outFragColor = color(iteration, dot(z,z), dist);
+    gl_FragColor = color(iteration, dot(z,z));
  
     // Apply gamma correction
-    outFragColor.rgb = pow(outFragColor.rgb, vec3(0.5));
+    gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(0.5));
 }
  
 `;
